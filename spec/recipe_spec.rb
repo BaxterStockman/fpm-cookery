@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'json'
 require 'fpm/cookery/book'
 require 'fpm/cookery/book_hook'
 require 'fpm/cookery/exceptions'
@@ -35,7 +36,7 @@ describe "Recipe" do
     describe "with a relative filename path" do
       it "expands the workdir path" do
         filename = "spec/#{File.basename(__FILE__)}"
-        r = klass.new
+        r = recipe_klass.new
         expect(r.workdir.to_s).to eq(File.dirname(__FILE__))
       end
     end
@@ -54,7 +55,7 @@ describe "Recipe" do
 
   describe "#source_handler" do
     it "returns the recipe's source handler" do
-      klass.class_eval do
+      recipe_klass.class_eval do
         source 'http://example.com/foo-1.0.tar.gz', :foo => 'bar'
       end
 
@@ -68,9 +69,9 @@ describe "Recipe" do
   def check_attribute(attr, value, expect = nil)
     expect ||= value
 
-    klass.send(attr, value)
+    recipe_klass.send(attr, value)
 
-    expect(klass.send(attr)).to eq(expect)
+    expect(recipe_klass.send(attr)).to eq(expect)
     expect(recipe.send(attr)).to eq(expect)
   end
 
@@ -226,7 +227,7 @@ describe "Recipe" do
     end
 
     it "raises an error when Hiera config file does not exist" do
-      expect { klass.hiera }.to raise_error do |error|
+      expect { recipe_klass.hiera }.to raise_error do |error|
         expect(error).to be_an(FPM::Cookery::Error::ExecutionFailure)
         expect(error.message).to match(/Encountered error loading Hiera/)
       end
@@ -236,27 +237,27 @@ describe "Recipe" do
   describe "#applicator" do
     context "given an attribute not set in the Hiera data file(s)" do
       before do
-        allow(klass).to receive(:lookup).with(:source).and_return(nil)
-        allow(klass).to receive(:source).and_return('http://www.facsimile.co.uk')
+        allow(recipe_klass).to receive(:lookup).with(:source).and_return(nil)
+        allow(recipe_klass).to receive(:source).and_return('http://www.facsimile.co.uk')
       end
 
       it "returns `nil'" do
-        expect(klass.send(:applicator, :source)).to be_nil
+        expect(recipe_klass.send(:applicator, :source)).to be_nil
       end
 
       it "does not call the provided block" do
-        expect { klass.send(:applicator, :source) { print "whoa" } }.not_to \
+        expect { recipe_klass.send(:applicator, :source) { print "whoa" } }.not_to \
           output("whoa").to_stdout
       end
     end
 
     context "given an attribute set in the Hiera data file(s)" do
       before do
-        allow(klass).to receive(:lookup).with(:name).and_return('J.J. Jingleheimer-Schmidt IV')
+        allow(recipe_klass).to receive(:lookup).with(:name).and_return('J.J. Jingleheimer-Schmidt IV')
       end
 
       it "calls the provided block" do
-        expect { klass.send(:applicator, :name) { print "whoa" } }.to \
+        expect { recipe_klass.send(:applicator, :name) { print "whoa" } }.to \
           output("whoa").to_stdout
       end
     end
@@ -266,14 +267,14 @@ describe "Recipe" do
     class_eval %Q{
       describe "##{name}" do
         it "can be set" do
-          klass.class_eval do
+          recipe_klass.class_eval do
             #{name} "#{list[0]}"
             #{name} "#{list[1]}"
           end
-          expect(klass.#{name}.size).to eq(#{list.size})
+          expect(recipe_klass.#{name}.size).to eq(#{list.size})
           expect(recipe.#{name}.size).to eq(#{list.size})
-          expect(klass.#{name}[0]).to eq("#{list[0]}")
-          expect(klass.#{name}[1]).to eq("#{list[1]}")
+          expect(recipe_klass.#{name}[0]).to eq("#{list[0]}")
+          expect(recipe_klass.#{name}[1]).to eq("#{list[1]}")
           expect(recipe.#{name}[0]).to eq("#{list[0]}")
           expect(recipe.#{name}[1]).to eq("#{list[1]}")
         end
@@ -295,44 +296,44 @@ describe "Recipe" do
 
   describe ".source" do
     it "sets a source url" do
-      klass.class_eval do
+      recipe_klass.class_eval do
         source 'http://example.com/foo-1.0.tar.gz'
       end
 
-      expect(klass.source).to eq('http://example.com/foo-1.0.tar.gz')
-      expect(klass.new.source).to eq('http://example.com/foo-1.0.tar.gz')
+      expect(recipe_klass.source).to eq('http://example.com/foo-1.0.tar.gz')
+      expect(recipe_klass.new.source).to eq('http://example.com/foo-1.0.tar.gz')
     end
 
     describe "with specs" do
       it "sets specs" do
-        klass.class_eval do
+        recipe_klass.class_eval do
           source 'http://example.com/foo-1.0.tar.gz', :foo => 'bar'
         end
 
-        expect(klass.spec).to eq({:foo => 'bar'})
-        expect(klass.new.spec).to eq({:foo => 'bar'})
+        expect(recipe_klass.spec).to eq({:foo => 'bar'})
+        expect(recipe_klass.new.spec).to eq({:foo => 'bar'})
       end
     end
   end
 
   describe ".url" do
     it "sets a source type (homebrew compat)" do
-      klass.class_eval do
+      recipe_klass.class_eval do
         url 'http://example.com/foo-1.0.tar.gz'
       end
 
-      expect(klass.source).to eq('http://example.com/foo-1.0.tar.gz')
-      expect(klass.new.source).to eq('http://example.com/foo-1.0.tar.gz')
+      expect(recipe_klass.source).to eq('http://example.com/foo-1.0.tar.gz')
+      expect(recipe_klass.new.source).to eq('http://example.com/foo-1.0.tar.gz')
     end
 
     describe "with specs" do
       it "sets specs" do
-        klass.class_eval do
+        recipe_klass.class_eval do
           url 'http://example.com/foo-1.0.tar.gz', :foo => 'bar'
         end
 
-        expect(klass.spec).to eq({:foo => 'bar'})
-        expect(klass.new.spec).to eq({:foo => 'bar'})
+        expect(recipe_klass.spec).to eq({:foo => 'bar'})
+        expect(recipe_klass.new.spec).to eq({:foo => 'bar'})
       end
     end
   end
@@ -350,18 +351,18 @@ describe "Recipe" do
 
   describe "#local_path" do
     it "returns the path to the local source file" do
-      klass.class_eval do
+      recipe_klass.class_eval do
         source 'http://example.com/foo-1.0.tar.gz'
       end
 
-      expect(File.basename(klass.new.local_path.to_s)).to eq('foo-1.0.tar.gz')
+      expect(File.basename(recipe_klass.new.local_path.to_s)).to eq('foo-1.0.tar.gz')
     end
   end
 
   describe ".platforms" do
     describe "with a list of platforms" do
       it "allows platform specific settings" do
-        klass.class_eval do
+      recipe_klass.class_eval do
           def self.platform; :ubuntu; end
 
           vendor 'a'
@@ -371,13 +372,13 @@ describe "Recipe" do
           end
         end
 
-        expect(klass.new.vendor).to eq('b')
+        expect(recipe_klass.new.vendor).to eq('b')
       end
     end
 
     describe "with a single platform" do
       it "allows platform specific settings" do
-        klass.class_eval do
+        recipe_klass.class_eval do
           def self.platform; :ubuntu; end
 
           vendor 'a'
@@ -387,13 +388,13 @@ describe "Recipe" do
           end
         end
 
-        expect(klass.new.vendor).to eq('b')
+        expect(recipe_klass.new.vendor).to eq('b')
       end
     end
 
     describe "without a matching platform" do
       it "does not set platform specific stuff" do
-        klass.class_eval do
+        recipe_klass.class_eval do
           def self.platform; :centos; end
 
           vendor 'a'
@@ -403,7 +404,7 @@ describe "Recipe" do
           end
         end
 
-        expect(klass.new.vendor).to eq('a')
+        expect(recipe_klass.new.vendor).to eq('a')
       end
     end
   end
@@ -417,7 +418,7 @@ describe "Recipe" do
 
     describe "with a list of architectures" do
       it "allows arch specific settings" do
-        klass.class_eval do
+        recipe_klass.class_eval do
           vendor 'a'
 
           architectures [:i386, :x86_64] do
@@ -425,13 +426,13 @@ describe "Recipe" do
           end
         end
 
-        expect(klass.new.vendor).to eq('b')
+        expect(recipe_klass.new.vendor).to eq('b')
       end
     end
 
     describe "with a single architecture" do
       it "allows arch specific settings" do
-        klass.class_eval do
+        recipe_klass.class_eval do
           vendor 'a'
 
           architectures :x86_64 do
@@ -439,13 +440,13 @@ describe "Recipe" do
           end
         end
 
-        expect(klass.new.vendor).to eq('b')
+        expect(recipe_klass.new.vendor).to eq('b')
       end
     end
 
     describe "without a matching architecture" do
       it "does not set arch specific settings" do
-        klass.class_eval do
+        recipe_klass.class_eval do
           vendor 'a'
 
           architectures :i386 do
@@ -453,14 +454,14 @@ describe "Recipe" do
           end
         end
 
-        expect(klass.new.vendor).to eq('a')
+        expect(recipe_klass.new.vendor).to eq('a')
       end
     end
   end
 
   describe ".platform" do
     it 'matches the current platform from FPM::Cookery::Facts' do
-      expect(klass.platform).to eq(FPM::Cookery::Facts.platform)
+      expect(recipe_klass.platform).to eq(FPM::Cookery::Facts.platform)
     end
   end
 
@@ -593,25 +594,25 @@ describe "Recipe" do
 
   describe "#depends_all" do
     it "returns build_depends and depends package names" do
-      klass.depends [:pkg1, :pkg2]
-      klass.build_depends [:pkg3, :pkg4]
+      recipe_klass.depends [:pkg1, :pkg2]
+      recipe_klass.build_depends [:pkg3, :pkg4]
 
       expect([:pkg1, :pkg2, :pkg3, :pkg4].all? { |i|
-        klass.depends_all.member?(i) && recipe.depends_all.member?(i)
+        recipe_klass.depends_all.member?(i) && recipe.depends_all.member?(i)
       }).to eq(true)
     end
   end
 
   describe ".fpm_attributes" do
     it "returns hash object as default" do
-      expect(klass.fpm_attributes).to be_a(Hash)
+      expect(recipe_klass.fpm_attributes).to be_a(Hash)
     end
 
     it "returns same value from instance method with hash assignment" do
       expect(recipe.fpm_attributes).to include({})
 
-      klass.fpm_attributes[:rpm_user] = 'httpd'
-      klass.fpm_attributes[:deb_user] = 'apache'
+      recipe_klass.fpm_attributes[:rpm_user] = 'httpd'
+      recipe_klass.fpm_attributes[:deb_user] = 'apache'
 
       expect(recipe.fpm_attributes).to include({:rpm_user=>'httpd', :deb_user=>'apache'})
     end
@@ -619,9 +620,45 @@ describe "Recipe" do
     it "returns same value from instance method with argument assignment" do
       expect(recipe.fpm_attributes).to include({})
 
-      klass.fpm_attributes :rpm_user => 'httpd', :deb_user => 'apache'
+      recipe_klass.fpm_attributes :rpm_user => 'httpd', :deb_user => 'apache'
 
       expect(recipe.fpm_attributes).to include({:rpm_user=>'httpd', :deb_user=>'apache'})
+    end
+  end
+
+  describe "#to_json" do
+    it "returns a terse JSON-formatted string with recipe attributes" do
+      json = recipe.to_json
+      expect { JSON.load(json) }.not_to raise_error
+      expect(json.lines.length).to be == 1
+      expect(json).to match(/"name"/)
+    end
+  end
+
+  describe "#to_pretty_json" do
+    it "returns a multiline JSON-formatted string with recipe attributes" do
+      json = recipe.to_pretty_json
+      expect { JSON.load(json) }.not_to raise_error
+      expect(json.lines.length).to be > 1
+      expect(json).to match(/"name"/)
+    end
+  end
+
+  describe "#template" do
+    context "given an ERB template containing valid recipe attributes" do
+      it "formats the string with recipe attributes" do
+        formatted = recipe.template("<%= name %>")
+        expect(formatted).to be == recipe.name
+      end
+    end
+
+    context "given an ERB template containing invalid recipe attributes" do
+      it "raises an error" do
+        expect { recipe.template("<%= notarecipeattr %>") }.to raise_error do |error|
+          expect(error).to be_an(FPM::Cookery::Error::ExecutionFailure)
+          expect(error.message).to match(/no attribute.*notarecipeattr/)
+        end
+      end
     end
   end
 end

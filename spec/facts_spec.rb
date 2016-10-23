@@ -1,11 +1,10 @@
 require 'spec_helper'
-require 'ostruct'
 require 'fpm/cookery/facts'
 
 shared_context "mock facts" do |facts = {}|
   before do
     facts.each_pair do |k, v|
-      allow(Facter).to receive(:fact).with(k).and_return(OpenStruct.new(:value => v))
+      allow(Facter).to receive(:value).with(k).and_return(v)
     end
   end
 end
@@ -20,6 +19,24 @@ describe "Facts" do
 
     it "returns the current architecture" do
       expect(FPM::Cookery::Facts.arch).to eq(:x86_64)
+    end
+  end
+
+  describe "lsbcodename" do
+    context "where lsbcodename is present" do
+      include_context "mock facts", { :lsbcodename => 'trusty' }
+
+      it "returns the current platforms codename" do
+        expect(FPM::Cookery::Facts.lsbcodename).to eq :trusty
+      end
+    end
+
+    context "where lsbcodename is not present" do
+      include_context "mock facts", { :lsbcodename => nil }
+
+      it "returns nil" do
+        expect(FPM::Cookery::Facts.lsbcodename).to be_nil
+      end
     end
   end
 
@@ -60,6 +77,7 @@ describe "Facts" do
         expect(FPM::Cookery::Facts.target).to eq(:rpm)
       end
     end
+
     describe "with platform CentOS" do
       it "returns rpm" do
         FPM::Cookery::Facts.platform = 'CentOS'
@@ -81,15 +99,29 @@ describe "Facts" do
       end
     end
 
-    describe "with platform Debian" do
+    describe "with platform Amazon" do
       it "returns rpm" do
+        FPM::Cookery::Facts.platform = 'Amazon'
+        expect(FPM::Cookery::Facts.target).to eq(:rpm)
+      end
+    end
+
+    describe "with platform OracleLinux" do
+      it "returns rpm" do
+        FPM::Cookery::Facts.platform = 'OracleLinux'
+        expect(FPM::Cookery::Facts.target).to eq(:rpm)
+      end
+    end
+
+    describe "with platform Debian" do
+      it "returns deb" do
         FPM::Cookery::Facts.platform = 'Debian'
         expect(FPM::Cookery::Facts.target).to eq(:deb)
       end
     end
 
     describe "with platform Ubuntu" do
-      it "returns rpm" do
+      it "returns deb" do
         FPM::Cookery::Facts.platform = 'Ubuntu'
         expect(FPM::Cookery::Facts.target).to eq(:deb)
       end
@@ -99,6 +131,13 @@ describe "Facts" do
       it "returns osxpkg" do
         FPM::Cookery::Facts.platform = 'Darwin'
         expect(FPM::Cookery::Facts.target).to eq(:osxpkg)
+      end
+    end
+
+    describe "with platform Alpine" do
+      it "returns apk" do
+        FPM::Cookery::Facts.platform = 'Alpine'
+        expect(FPM::Cookery::Facts.target).to eq(:apk)
       end
     end
 

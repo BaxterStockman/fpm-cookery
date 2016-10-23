@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
 
-  s.add_development_dependency "rspec", "~> 3.0"
+  s.add_development_dependency "rspec", "~> 3.3"
   s.add_development_dependency "rake"
   s.add_development_dependency "pry"
   s.add_development_dependency "simplecov", "~> 0.11"
@@ -27,4 +27,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "puppet", "~> 3.4"
   s.add_runtime_dependency "addressable", "~> 2.3.8"
   s.add_runtime_dependency "systemu"
+  s.add_runtime_dependency "json", ">= 1.7.7", "< 2.0"
+  s.add_runtime_dependency "json_pure", ">= 1.7.7", "< 2.0"
 end
